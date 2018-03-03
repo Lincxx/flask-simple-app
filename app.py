@@ -37,9 +37,9 @@ def articles():
 
     #get articles
     result = cur.execute('SELECT * FROM articles')
-
+    app.logger.info(result)
     articles = cur.fetchall()
-
+    app.logger.info(articles)
     if result > 0:
         return render_template('articles.html', articles=articles)  
     else:
@@ -219,7 +219,65 @@ def addArticle():
         flash('Article Created', 'success')
         return redirect(url_for('dashboard'))
 
-    return render_template('add_article.html', form=form)
+#Edit Article
+@app.route('/edit_article/<string:id>', methods=['GET', 'POST'])
+@is_logged_in
+def edit_article(id):
+    #create cursor
+    cur = mysql.connection.cursor()
+
+    #get article by id
+    result = cur.execute("SELECT * FROM articles WHERE id = %s", [id])
+
+    aritcle = cur.fetchone()
+
+    #get for
+    form = ArticleForm(request.form)
+
+    #populate article form fields
+    form.title.data = aritcle['title']
+    form.body.data = aritcle['body']
+
+    if request.method == 'POST' and form.validate():
+        title = request.form['title']
+        body = request.form['body']
+
+        #create vursor
+        cur = mysql.connection.cursor()
+
+        #execute 
+        cur.execute("UPDATE articles SET title = %s, body = %s WHERE id = %s", (title, body, id))
+
+        #commit
+        mysql.connection.commit()
+
+        #close
+        cur.close()
+
+        flash('Article Created', 'success')
+        return redirect(url_for('dashboard'))
+
+    return render_template('edit_article.html', form=form)
+
+#Delete Article
+@app.route('/delete_article/<string:id>', methods=['POST'])
+@is_logged_in
+def delete_article(id):
+    #create cursor
+    cur = mysql.connection.cursor()
+
+    #execute
+    cur.execute("DELETE FROM articles WHERE id = %s", [id])
+    
+    #commit
+    mysql.connection.commit()
+
+    #close
+    cur.close()
+
+    flash('Article Deleted', 'success')
+    return redirect(url_for('dashboard'))
+
 if  __name__  ==  '__main__':
     app.secret_key='secret123'
     app.run(debug=True)
